@@ -27,28 +27,43 @@ const RoleManagement = () => {
 
   // Fetch roles on component mount
   useEffect(() => {
-    fetchRoles();
-  }, []);
-
-  const fetchRoles = async () => {
-    setLoading(true);
-    setError(null);
+    // Add a flag to prevent duplicate calls
+    let isMounted = true;
     
-    try {
-      const response = await roleService.getRoles();
+    const fetchRolesData = async () => {
+      setLoading(true);
+      setError(null);
       
-      if (response.isSuccess && response.data) {
-        setRoles(response.data);
-      } else {
-        throw new Error(response.message || 'Failed to fetch roles');
+      try {
+        const response = await roleService.getRoles();
+        
+        // Only update state if component is still mounted
+        if (isMounted) {
+          if (response.isSuccess && response.data) {
+            setRoles(response.data);
+          } else {
+            throw new Error(response.message || 'Failed to fetch roles');
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error('Error fetching roles:', err);
+          setError(err.message || 'An error occurred while fetching roles');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    } catch (err) {
-      console.error('Error fetching roles:', err);
-      setError(err.message || 'An error occurred while fetching roles');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    
+    fetchRolesData();
+    
+    // Cleanup function to prevent state updates if component unmounts
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array to run only once
 
   const handleEdit = async (roleId) => {
     setFormLoading(true);
