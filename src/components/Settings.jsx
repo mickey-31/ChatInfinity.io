@@ -15,15 +15,42 @@ import {
   CircularProgress,
   Alert,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Dashboard as DashboardIcon,
+  People as PeopleIcon,
+  AdminPanelSettings as RolesIcon
 } from '@mui/icons-material';
 import UserForm from './UserForm';
 import apiService from '../services/api';
+
+// Tab Panel component
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`settings-tabpanel-${index}`}
+      aria-labelledby={`settings-tab-${index}`}
+      {...other}
+      style={{ width: '100%' }}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
 
 const Settings = () => {
   const [users, setUsers] = useState([]);
@@ -34,8 +61,14 @@ const Settings = () => {
   const [formError, setFormError] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [tabValue, setTabValue] = useState(0); // State for active tab
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Handle tab change
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
 
   // Fetch users and roles on component mount
   useEffect(() => {
@@ -106,9 +139,24 @@ const Settings = () => {
     }
   };
 
-  const handleDelete = (uid) => {
-    // Implement delete functionality
-    console.log('Delete user with ID:', uid);
+  const handleDelete = async (uid) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        const response = await apiService.delete(`/api/v1/users/${uid}`);
+        
+        if (response.isSuccess) {
+          // Show success message or notification
+          alert('User deleted successfully');
+          // Refresh the user list
+          fetchUsers();
+        } else {
+          throw new Error(response.message || 'Failed to delete user');
+        }
+      } catch (err) {
+        console.error('Error deleting user:', err);
+        alert(err.message || 'An error occurred while deleting the user');
+      }
+    }
   };
 
   const handleAddUser = () => {
@@ -168,6 +216,112 @@ const Settings = () => {
     );
   };
 
+  // User Management Tab Content
+  const renderUserManagementTab = () => {
+    return (
+      <>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          mb: 3
+        }}>
+          <Typography variant="h5" component="h1">
+            User Management
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            startIcon={<AddIcon />}
+            onClick={handleAddUser}
+          >
+            ADD USER
+          </Button>
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2, bgcolor: 'rgba(211, 47, 47, 0.1)', color: '#f44336' }}>
+            {error}
+          </Alert>
+        )}
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <TableContainer component={Paper} sx={{ bgcolor: '#1E1E1E', color: 'white' }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Name</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Email</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Mobile</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Roles</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.uid}>
+                    <TableCell sx={{ color: 'white' }}>{user.userName}</TableCell>
+                    <TableCell sx={{ color: 'white' }}>{user.email}</TableCell>
+                    <TableCell sx={{ color: 'white' }}>{user.mobileNo}</TableCell>
+                    <TableCell>{renderRoles(user.roles)}</TableCell>
+                    <TableCell>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleEdit(user.uid)}
+                        sx={{ color: '#4285F4' }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleDelete(user.uid)}
+                        sx={{ color: '#EA4335' }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </>
+    );
+  };
+
+  // Roles Tab Content
+  const renderRolesTab = () => {
+    return (
+      <Box>
+        <Typography variant="h5" component="h1" sx={{ mb: 3 }}>
+          Roles Management
+        </Typography>
+        <Typography variant="body1">
+          Role management functionality will be implemented here. This section will allow you to create, edit, and delete roles.
+        </Typography>
+      </Box>
+    );
+  };
+
+  // Dashboard Tab Content
+  const renderDashboardTab = () => {
+    return (
+      <Box>
+        <Typography variant="h5" component="h1" sx={{ mb: 3 }}>
+          Dashboard Settings
+        </Typography>
+        <Typography variant="body1">
+          Dashboard configuration options will be displayed here. You'll be able to customize your dashboard view and preferences.
+        </Typography>
+      </Box>
+    );
+  };
+
   return (
     <Box sx={{ 
       p: 3, 
@@ -175,158 +329,55 @@ const Settings = () => {
       color: 'white',
       minHeight: '100vh'
     }}>
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        mb: 3
-      }}>
-        <Typography variant="h5" component="h1">
-          User Management
-        </Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />}
-          onClick={handleAddUser}
-          sx={{ 
-            bgcolor: '#4285F4',
-            '&:hover': {
-              bgcolor: '#3367d6',
-            }
-          }}
-        >
-          Add User
-        </Button>
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2, bgcolor: 'rgba(211, 47, 47, 0.1)', color: '#f44336' }}>
-          {error}
-        </Alert>
-      )}
-
+      {/* Tabs Navigation */}
       <Paper sx={{ 
         width: '100%', 
-        overflow: 'hidden',
-        bgcolor: '#202123',
+        bgcolor: '#1E1E1E', 
         color: 'white',
-        borderRadius: 1
+        mb: 3
       }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress sx={{ color: 'white' }} />
-          </Box>
-        ) : (
-          <TableContainer sx={{ maxHeight: 'calc(100vh - 200px)' }}>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ 
-                    bgcolor: '#2D2D30', 
-                    color: 'white',
-                    fontWeight: 'bold'
-                  }}>
-                    Name
-                  </TableCell>
-                  {!isMobile && (
-                    <TableCell sx={{ 
-                      bgcolor: '#2D2D30', 
-                      color: 'white',
-                      fontWeight: 'bold'
-                    }}>
-                      Email
-                    </TableCell>
-                  )}
-                  {!isMobile && (
-                    <TableCell sx={{ 
-                      bgcolor: '#2D2D30', 
-                      color: 'white',
-                      fontWeight: 'bold'
-                    }}>
-                      Mobile
-                    </TableCell>
-                  )}
-                  <TableCell sx={{ 
-                    bgcolor: '#2D2D30', 
-                    color: 'white',
-                    fontWeight: 'bold'
-                  }}>
-                    Roles
-                  </TableCell>
-                  <TableCell sx={{ 
-                    bgcolor: '#2D2D30', 
-                    color: 'white',
-                    fontWeight: 'bold',
-                    width: '120px'
-                  }}>
-                    Actions
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {users.length > 0 ? (
-                  users.map((user) => (
-                    <TableRow 
-                      key={user.uid}
-                      hover
-                      sx={{ 
-                        '&:hover': { 
-                          bgcolor: 'rgba(255,255,255,0.05)' 
-                        }
-                      }}
-                    >
-                      <TableCell sx={{ color: 'white' }}>
-                        {user.userName}
-                      </TableCell>
-                      {!isMobile && (
-                        <TableCell sx={{ color: 'white' }}>
-                          {user.email}
-                        </TableCell>
-                      )}
-                      {!isMobile && (
-                        <TableCell sx={{ color: 'white' }}>
-                          {user.mobileNo}
-                        </TableCell>
-                      )}
-                      <TableCell sx={{ color: 'white' }}>
-                        {renderRoles(user.roles)}
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleEdit(user.uid)}
-                            sx={{ color: '#4285F4' }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleDelete(user.uid)}
-                            sx={{ color: '#EA4335' }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell 
-                      colSpan={isMobile ? 3 : 5} 
-                      align="center"
-                      sx={{ color: 'rgba(255,255,255,0.5)' }}
-                    >
-                      No users found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange}
+          variant="fullWidth"
+          textColor="inherit"
+          indicatorColor="primary"
+          aria-label="settings tabs"
+        >
+          <Tab 
+            icon={<PeopleIcon />} 
+            label="User Management" 
+            id="settings-tab-0"
+            aria-controls="settings-tabpanel-0"
+            sx={{ color: 'white' }}
+          />
+          <Tab 
+            icon={<RolesIcon />} 
+            label="Roles" 
+            id="settings-tab-1"
+            aria-controls="settings-tabpanel-1"
+            sx={{ color: 'white' }}
+          />
+          <Tab 
+            icon={<DashboardIcon />} 
+            label="Dashboard" 
+            id="settings-tab-2"
+            aria-controls="settings-tabpanel-2"
+            sx={{ color: 'white' }}
+          />
+        </Tabs>
       </Paper>
+
+      {/* Tab Panels */}
+      <TabPanel value={tabValue} index={0}>
+        {renderUserManagementTab()}
+      </TabPanel>
+      <TabPanel value={tabValue} index={1}>
+        {renderRolesTab()}
+      </TabPanel>
+      <TabPanel value={tabValue} index={2}>
+        {renderDashboardTab()}
+      </TabPanel>
 
       {/* User Form Dialog */}
       <UserForm
