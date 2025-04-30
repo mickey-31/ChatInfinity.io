@@ -16,8 +16,13 @@ import {
   Alert,
   useTheme,
   useMediaQuery,
-  Tabs,
-  Tab
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  TextField,
+  InputAdornment
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -25,32 +30,16 @@ import {
   Add as AddIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
-  AdminPanelSettings as RolesIcon
+  Settings as SettingsIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Search as SearchIcon,
+  ArrowBack as ArrowBackIcon,
+  KeyboardArrowLeft as KeyboardArrowLeftIcon,
+  KeyboardArrowRight as KeyboardArrowRightIcon
 } from '@mui/icons-material';
 import UserForm from './UserForm';
 import apiService from '../services/api';
-
-// Tab Panel component
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`settings-tabpanel-${index}`}
-      aria-labelledby={`settings-tab-${index}`}
-      {...other}
-      style={{ width: '100%' }}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
 
 const Settings = () => {
   const [users, setUsers] = useState([]);
@@ -61,14 +50,11 @@ const Settings = () => {
   const [formError, setFormError] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [tabValue, setTabValue] = useState(0); // State for active tab
+  const [activeSection, setActiveSection] = useState('users'); // Default to users section
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  // Handle tab change
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
 
   // Fetch users and roles on component mount
   useEffect(() => {
@@ -216,27 +202,211 @@ const Settings = () => {
     );
   };
 
-  // User Management Tab Content
-  const renderUserManagementTab = () => {
+  // Filter users based on search query
+  const filteredUsers = users.filter(user => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
     return (
-      <>
+      user.userName?.toLowerCase().includes(query) ||
+      user.email?.toLowerCase().includes(query) ||
+      user.mobileNo?.toLowerCase().includes(query)
+    );
+  });
+
+  // Sidebar component
+  const renderSidebar = () => {
+    return (
+      <Box
+        sx={{
+          width: sidebarCollapsed ? '60px' : '220px',
+          height: '100vh',
+          bgcolor: '#1E1E1E',
+          color: 'white',
+          borderRight: '1px solid #333',
+          transition: 'width 0.3s ease',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          zIndex: 100
+        }}
+      >
+        <Box
+          sx={{
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+            borderBottom: '1px solid #333'
+          }}
+        >
+          {!sidebarCollapsed && (
+            <Typography variant="h6" component="div">
+              Settings
+            </Typography>
+          )}
+          <IconButton
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            sx={{ color: 'white' }}
+          >
+            {sidebarCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          </IconButton>
+        </Box>
+        
+        <List sx={{ mt: 2 }}>
+          <ListItem
+            button
+            selected={activeSection === 'dashboard'}
+            onClick={() => setActiveSection('dashboard')}
+            sx={{
+              pl: sidebarCollapsed ? 1 : 2,
+              pr: sidebarCollapsed ? 1 : 2,
+              py: 1.5,
+              '&.Mui-selected': {
+                bgcolor: 'rgba(255, 255, 255, 0.1)',
+              },
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+              }
+            }}
+          >
+            <ListItemIcon sx={{ color: 'white', minWidth: sidebarCollapsed ? 24 : 40 }}>
+              <DashboardIcon />
+            </ListItemIcon>
+            {!sidebarCollapsed && <ListItemText primary="Dashboard" />}
+          </ListItem>
+          
+          <ListItem
+            button
+            selected={activeSection === 'users'}
+            onClick={() => setActiveSection('users')}
+            sx={{
+              pl: sidebarCollapsed ? 1 : 2,
+              pr: sidebarCollapsed ? 1 : 2,
+              py: 1.5,
+              '&.Mui-selected': {
+                bgcolor: 'rgba(255, 255, 255, 0.1)',
+              },
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+              }
+            }}
+          >
+            <ListItemIcon sx={{ color: 'white', minWidth: sidebarCollapsed ? 24 : 40 }}>
+              <PeopleIcon />
+            </ListItemIcon>
+            {!sidebarCollapsed && <ListItemText primary="Users" />}
+          </ListItem>
+          
+          <ListItem
+            button
+            selected={activeSection === 'general'}
+            onClick={() => setActiveSection('general')}
+            sx={{
+              pl: sidebarCollapsed ? 1 : 2,
+              pr: sidebarCollapsed ? 1 : 2,
+              py: 1.5,
+              '&.Mui-selected': {
+                bgcolor: 'rgba(255, 255, 255, 0.1)',
+              },
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.05)',
+              }
+            }}
+          >
+            <ListItemIcon sx={{ color: 'white', minWidth: sidebarCollapsed ? 24 : 40 }}>
+              <SettingsIcon />
+            </ListItemIcon>
+            {!sidebarCollapsed && <ListItemText primary="General" />}
+          </ListItem>
+        </List>
+      </Box>
+    );
+  };
+
+  // Dashboard content
+  const renderDashboardContent = () => {
+    return (
+      <Box>
+        <Typography variant="h5" component="h1" sx={{ mb: 3 }}>
+          Dashboard Settings
+        </Typography>
+        <Paper sx={{ p: 3, bgcolor: '#202123', color: 'white' }}>
+          <Typography variant="body1">
+            Dashboard configuration options will be displayed here. You'll be able to customize your dashboard view and preferences.
+          </Typography>
+        </Paper>
+      </Box>
+    );
+  };
+
+  // Users content
+  const renderUsersContent = () => {
+    return (
+      <Box>
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
           mb: 3
         }}>
-          <Typography variant="h5" component="h1">
-            User Management
-          </Typography>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            startIcon={<AddIcon />}
-            onClick={handleAddUser}
-          >
-            ADD USER
-          </Button>
+          <Box>
+            <Typography variant="h5" component="h1">
+              Users ({filteredUsers.length})
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              placeholder="Search users..."
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                  </InputAdornment>
+                ),
+                sx: { 
+                  color: 'white',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(255, 255, 255, 0.23)',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'white',
+                  }
+                }
+              }}
+              sx={{ 
+                width: 250,
+                '& .MuiInputLabel-root': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: 'white',
+                },
+              }}
+            />
+            <Button 
+              variant="contained" 
+              startIcon={<AddIcon />}
+              onClick={handleAddUser}
+              sx={{ 
+                bgcolor: '#4285F4',
+                '&:hover': {
+                  bgcolor: '#3367d6',
+                },
+                textTransform: 'none'
+              }}
+            >
+              Create User
+            </Button>
+          </Box>
         </Box>
 
         {error && (
@@ -246,138 +416,235 @@ const Settings = () => {
         )}
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-            <CircularProgress />
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress sx={{ color: 'white' }} />
           </Box>
         ) : (
-          <TableContainer component={Paper} sx={{ bgcolor: '#1E1E1E', color: 'white' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Name</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Email</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Mobile</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Roles</TableCell>
-                  <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.uid}>
-                    <TableCell sx={{ color: 'white' }}>{user.userName}</TableCell>
-                    <TableCell sx={{ color: 'white' }}>{user.email}</TableCell>
-                    <TableCell sx={{ color: 'white' }}>{user.mobileNo}</TableCell>
-                    <TableCell>{renderRoles(user.roles)}</TableCell>
-                    <TableCell>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleEdit(user.uid)}
-                        sx={{ color: '#4285F4' }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleDelete(user.uid)}
-                        sx={{ color: '#EA4335' }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+          <Paper sx={{ 
+            width: '100%', 
+            overflow: 'hidden',
+            bgcolor: '#202123',
+            color: 'white',
+            borderRadius: 1
+          }}>
+            <TableContainer sx={{ maxHeight: 'calc(100vh - 250px)' }}>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ 
+                      bgcolor: '#2D2D30', 
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}>
+                      ROLE
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#2D2D30', 
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}>
+                      NAME
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#2D2D30', 
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}>
+                      EMAIL
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#2D2D30', 
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}>
+                      MOBILE
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#2D2D30', 
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}>
+                      TENANT
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#2D2D30', 
+                      color: 'white',
+                      fontWeight: 'bold',
+                      width: '100px'
+                    }}>
+                      ACTIONS
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map((user) => (
+                      <TableRow 
+                        key={user.uid}
+                        hover
+                        sx={{ 
+                          '&:hover': { 
+                            bgcolor: 'rgba(255,255,255,0.05)' 
+                          }
+                        }}
+                      >
+                        <TableCell sx={{ color: 'white' }}>
+                          {renderRoles(user.roles)}
+                        </TableCell>
+                        <TableCell sx={{ color: 'white' }}>
+                          {user.userName}
+                        </TableCell>
+                        <TableCell sx={{ color: 'white' }}>
+                          {user.email}
+                        </TableCell>
+                        <TableCell sx={{ color: 'white' }}>
+                          {user.mobileNo}
+                        </TableCell>
+                        <TableCell sx={{ color: 'white' }}>
+                          {user.tenantCode}
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => handleEdit(user.uid)}
+                              sx={{ color: '#4285F4' }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => handleDelete(user.uid)}
+                              sx={{ color: '#EA4335' }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell 
+                        colSpan={6} 
+                        align="center"
+                        sx={{ color: 'rgba(255,255,255,0.5)' }}
+                      >
+                        No users found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            
+            {/* Pagination */}
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              p: 2,
+              borderTop: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                Total: {filteredUsers.length} users
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Button 
+                  size="small" 
+                  startIcon={<KeyboardArrowLeftIcon />}
+                  sx={{ color: 'white', minWidth: 'auto' }}
+                >
+                  Previous
+                </Button>
+                <Typography variant="body2" sx={{ color: 'white', mx: 1 }}>
+                  1
+                </Typography>
+                <Button 
+                  size="small" 
+                  endIcon={<KeyboardArrowRightIcon />}
+                  sx={{ color: 'white', minWidth: 'auto' }}
+                >
+                  Next
+                </Button>
+              </Box>
+            </Box>
+          </Paper>
         )}
-      </>
-    );
-  };
-
-  // Roles Tab Content
-  const renderRolesTab = () => {
-    return (
-      <Box>
-        <Typography variant="h5" component="h1" sx={{ mb: 3 }}>
-          Roles Management
-        </Typography>
-        <Typography variant="body1">
-          Role management functionality will be implemented here. This section will allow you to create, edit, and delete roles.
-        </Typography>
       </Box>
     );
   };
 
-  // Dashboard Tab Content
-  const renderDashboardTab = () => {
+  // General content
+  const renderGeneralContent = () => {
     return (
       <Box>
         <Typography variant="h5" component="h1" sx={{ mb: 3 }}>
-          Dashboard Settings
+          General Settings
         </Typography>
-        <Typography variant="body1">
-          Dashboard configuration options will be displayed here. You'll be able to customize your dashboard view and preferences.
-        </Typography>
+        <Paper sx={{ p: 3, bgcolor: '#202123', color: 'white' }}>
+          <Typography variant="body1">
+            General application settings will be displayed here. You'll be able to configure global preferences.
+          </Typography>
+        </Paper>
       </Box>
     );
+  };
+
+  // Render content based on active section
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'dashboard':
+        return renderDashboardContent();
+      case 'users':
+        return renderUsersContent();
+      case 'general':
+        return renderGeneralContent();
+      default:
+        return renderUsersContent();
+    }
   };
 
   return (
     <Box sx={{ 
-      p: 3, 
+      display: 'flex',
       bgcolor: '#343541',
       color: 'white',
       minHeight: '100vh'
     }}>
-      {/* Tabs Navigation */}
-      <Paper sx={{ 
-        width: '100%', 
-        bgcolor: '#1E1E1E', 
-        color: 'white',
-        mb: 3
+      {/* Sidebar */}
+      {renderSidebar()}
+      
+      {/* Main Content */}
+      <Box sx={{ 
+        flexGrow: 1, 
+        p: 3,
+        ml: sidebarCollapsed ? '60px' : '220px',
+        transition: 'margin-left 0.3s ease',
+        width: `calc(100% - ${sidebarCollapsed ? '60px' : '220px'})`,
       }}>
-        <Tabs 
-          value={tabValue} 
-          onChange={handleTabChange}
-          variant="fullWidth"
-          textColor="inherit"
-          indicatorColor="primary"
-          aria-label="settings tabs"
-        >
-          <Tab 
-            icon={<PeopleIcon />} 
-            label="User Management" 
-            id="settings-tab-0"
-            aria-controls="settings-tabpanel-0"
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          mb: 3,
+          gap: 1
+        }}>
+          <IconButton 
+            onClick={() => window.history.back()}
             sx={{ color: 'white' }}
-          />
-          <Tab 
-            icon={<RolesIcon />} 
-            label="Roles" 
-            id="settings-tab-1"
-            aria-controls="settings-tabpanel-1"
-            sx={{ color: 'white' }}
-          />
-          <Tab 
-            icon={<DashboardIcon />} 
-            label="Dashboard" 
-            id="settings-tab-2"
-            aria-controls="settings-tabpanel-2"
-            sx={{ color: 'white' }}
-          />
-        </Tabs>
-      </Paper>
-
-      {/* Tab Panels */}
-      <TabPanel value={tabValue} index={0}>
-        {renderUserManagementTab()}
-      </TabPanel>
-      <TabPanel value={tabValue} index={1}>
-        {renderRolesTab()}
-      </TabPanel>
-      <TabPanel value={tabValue} index={2}>
-        {renderDashboardTab()}
-      </TabPanel>
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" component="h1">
+            Settings
+          </Typography>
+        </Box>
+        
+        {/* Content Area */}
+        <Box sx={{ mt: 2 }}>
+          {renderContent()}
+        </Box>
+      </Box>
 
       {/* User Form Dialog */}
       <UserForm
