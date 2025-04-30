@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -24,11 +24,14 @@ const RoleManagement = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const fetchedRef = useRef(false);
 
   // Fetch roles on component mount
   useEffect(() => {
-    // Add a flag to prevent duplicate calls
-    let isMounted = true;
+    // Only fetch if we haven't already
+    if (fetchedRef.current) return;
+    
+    fetchedRef.current = true;
     
     const fetchRolesData = async () => {
       setLoading(true);
@@ -37,32 +40,20 @@ const RoleManagement = () => {
       try {
         const response = await roleService.getRoles();
         
-        // Only update state if component is still mounted
-        if (isMounted) {
-          if (response.isSuccess && response.data) {
-            setRoles(response.data);
-          } else {
-            throw new Error(response.message || 'Failed to fetch roles');
-          }
+        if (response.isSuccess && response.data) {
+          setRoles(response.data);
+        } else {
+          throw new Error(response.message || 'Failed to fetch roles');
         }
       } catch (err) {
-        if (isMounted) {
-          console.error('Error fetching roles:', err);
-          setError(err.message || 'An error occurred while fetching roles');
-        }
+        console.error('Error fetching roles:', err);
+        setError(err.message || 'An error occurred while fetching roles');
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
     
     fetchRolesData();
-    
-    // Cleanup function to prevent state updates if component unmounts
-    return () => {
-      isMounted = false;
-    };
   }, []); // Empty dependency array to run only once
 
   const handleEdit = async (roleId) => {

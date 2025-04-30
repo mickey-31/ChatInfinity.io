@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -27,9 +27,15 @@ const UserManagement = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const fetchedRef = useRef(false);
 
   // Fetch users and roles on component mount
   useEffect(() => {
+    // Only fetch if we haven't already
+    if (fetchedRef.current) return;
+    
+    fetchedRef.current = true;
+    
     fetchUsers();
     fetchRoles();
   }, []);
