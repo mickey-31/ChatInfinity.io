@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL for API requests
-const API_BASE_URL = 'https://api.example.com'; // Replace with your actual API base URL
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 // Create axios instance with default config
 const apiClient = axios.create({
@@ -38,12 +38,8 @@ apiClient.interceptors.response.use(
       if (status === 401) {
         // Handle unauthorized (e.g., redirect to login)
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         window.location.href = '/';
-      }
-      
-      if (status === 403) {
-        // Handle forbidden
-        console.error('Access forbidden');
       }
     }
     

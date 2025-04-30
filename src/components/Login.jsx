@@ -8,18 +8,25 @@ import {
   InputAdornment,
   IconButton,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Alert
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    organization: '',
+    tenantCode: 'demo',
     email: '',
     password: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -36,11 +43,46 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Navigate to home page after login
-    navigate('/home');
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/v1/users/token`, 
+        formData
+      );
+      
+      const { data } = response.data;
+      
+      if (data && data.length > 0) {
+        const userData = data[0];
+        
+        // Store user data in localStorage
+        localStorage.setItem('token', userData.token);
+        localStorage.setItem('user', JSON.stringify({
+          uid: userData.uid,
+          tenantId: userData.tenantId,
+          tenantCode: userData.tenantCode,
+          email: userData.email,
+          isAdmin: userData.isAdmin
+        }));
+        
+        // Navigate to home page after successful login
+        navigate('/home');
+      } else {
+        setError('Invalid response from server');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(
+        err.response?.data?.message || 
+        'Failed to login. Please check your credentials and try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -115,6 +157,12 @@ const Login = () => {
             </Typography>
           </Box>
 
+          {error && (
+            <Alert severity="error" sx={{ mb: 2, bgcolor: 'rgba(211, 47, 47, 0.1)', color: '#f44336' }}>
+              {error}
+            </Alert>
+          )}
+
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
             <Typography variant="body2" sx={{ mb: 1 }}>
               Organization
@@ -123,10 +171,10 @@ const Login = () => {
               margin="normal"
               required
               fullWidth
-              id="organization"
-              name="organization"
+              id="tenantCode"
+              name="tenantCode"
               placeholder="Your organization"
-              value={formData.organization}
+              value={formData.tenantCode}
               onChange={handleChange}
               variant="outlined"
               sx={{
@@ -240,6 +288,7 @@ const Login = () => {
               type="submit"
               fullWidth
               variant="contained"
+              disabled={loading}
               sx={{ 
                 mt: 3, 
                 mb: 2, 
@@ -251,7 +300,7 @@ const Login = () => {
                 borderRadius: 1
               }}
             >
-              Sign In
+              {loading ? 'Signing In...' : 'Sign In'}
             </Button>
           </Box>
         </Container>

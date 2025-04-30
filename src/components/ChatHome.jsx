@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -25,18 +25,40 @@ import {
   Archive as ArchiveIcon,
   Mic as MicIcon,
   Person as PersonIcon,
-  MoreVert as MoreVertIcon
+  MoreVert as MoreVertIcon,
+  Logout as LogoutIcon
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const ChatHome = () => {
   const [message, setMessage] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(true);
+  const [user, setUser] = useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
+  
+  // Get user data from localStorage
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (!token || !userData) {
+      // Redirect to login if not authenticated
+      navigate('/');
+      return;
+    }
+    
+    try {
+      setUser(JSON.parse(userData));
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      navigate('/');
+    }
+  }, [navigate]);
   
   // Auto-close drawer on mobile
-  React.useEffect(() => {
+  useEffect(() => {
     if (isMobile) {
       setDrawerOpen(false);
     } else {
@@ -55,6 +77,14 @@ const ChatHome = () => {
       setMessage('');
     }
   };
+  
+  const handleLogout = () => {
+    // Clear user data from localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    // Redirect to login page
+    navigate('/');
+  };
 
   const drawerWidth = 250;
 
@@ -63,6 +93,12 @@ const ChatHome = () => {
     { title: 'Grammar check', description: 'rewrite it for better readability' },
     { title: 'Give me ideas', description: 'for what to do with my kid\'s art' }
   ];
+
+  // Get first letter of user's email for avatar
+  const getInitial = () => {
+    if (!user || !user.email) return '?';
+    return user.email.charAt(0).toUpperCase();
+  };
 
   return (
     <Box sx={{ 
@@ -144,15 +180,23 @@ const ChatHome = () => {
               </ListItemIcon>
               <ListItemText primary="Archived Chats" />
             </ListItem>
+            <ListItem button onClick={handleLogout}>
+              <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+                <LogoutIcon />
+              </ListItemIcon>
+              <ListItemText primary="Logout" />
+            </ListItem>
           </List>
           <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)', my: 1 }} />
           <ListItem sx={{ px: 1 }}>
             <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-              <Avatar sx={{ width: 30, height: 30, bgcolor: '#5E5E5E' }}>P</Avatar>
+              <Avatar sx={{ width: 30, height: 30, bgcolor: '#5E5E5E' }}>
+                {getInitial()}
+              </Avatar>
             </ListItemIcon>
             <ListItemText 
-              primary="Pisek Benz" 
-              secondary="Guest"
+              primary={user?.email || 'User'} 
+              secondary={user?.tenantCode || 'Guest'}
               secondaryTypographyProps={{ color: 'rgba(255,255,255,0.5)' }}
             />
           </ListItem>
@@ -213,7 +257,7 @@ const ChatHome = () => {
             <PersonIcon fontSize="large" />
           </Avatar>
           <Typography variant="h4" gutterBottom>
-            Hello, Pisek Benz
+            Hello, {user?.email?.split('@')[0] || 'User'}
           </Typography>
           <Typography variant="body1" color="rgba(255,255,255,0.7)" gutterBottom>
             Welcome to chatInfinity. How can I help you today?
