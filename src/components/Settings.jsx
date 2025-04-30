@@ -72,7 +72,9 @@ const Settings = () => {
         const mappedRoles = response.data.map((role, index) => {
           const colors = ['#4285F4', '#34A853', '#FBBC05', '#EA4335', '#673AB7', '#FF5722'];
           return {
-            ...role,
+            id: role.roleId.toString(),
+            name: role.roleName,
+            description: role.roleDescr,
             color: colors[index % colors.length]
           };
         });

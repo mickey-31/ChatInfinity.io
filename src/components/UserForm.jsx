@@ -259,6 +259,7 @@ const UserForm = ({ open, onClose, user, roles, onSubmit, isLoading, error }) =>
             variant="outlined"
             value={formData.password}
             onChange={handleChange}
+            required={!user}
             sx={{
               mb: 2,
               '& .MuiOutlinedInput-root': {
@@ -291,6 +292,7 @@ const UserForm = ({ open, onClose, user, roles, onSubmit, isLoading, error }) =>
             variant="outlined"
             value={formData.confirmPassword}
             onChange={handleChange}
+            required={!user}
             sx={{
               mb: 2,
               '& .MuiOutlinedInput-root': {
